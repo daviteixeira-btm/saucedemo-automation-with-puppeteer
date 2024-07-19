@@ -6,11 +6,12 @@ describe("Login with Standard User", () => {
 
     beforeAll(async () => {
         browser = await puppeteer.launch({
+            slowMo: 20,
             headless: false,
-            defaultViewport: false,
             userDataDir: "./tmp",
-            slowMo: 20
+            defaultViewport: false,
         });
+        
         page = await browser.newPage();
     });
 
