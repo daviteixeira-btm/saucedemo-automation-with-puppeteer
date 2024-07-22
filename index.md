@@ -26,6 +26,8 @@ const puppeteer = require('puppeteer');
     await page.waitForSelector(buttonLoginSelector);
     await page.click(buttonLoginSelector);
 
-    //await page.screenshot({ path: "example.png"});
+    await page.screenshot({ path: "example.png"});
+    await jestPuppeteer.debug();
+    
     await browser.close();
 })();

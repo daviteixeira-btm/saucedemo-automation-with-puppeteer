@@ -14,11 +14,11 @@ const createTestStructure = (module, testName) => {
     const moduleDir = module ? path.join(testsDir, module) : testsDir;
     const testDir = path.join(moduleDir, testName);
 
-    if(!fs.existsSync(moduleDir)){
+    if (!fs.existsSync(moduleDir)) {
         fs.mkdirSync(moduleDir, { recursive: true });
     }
 
-    if(!fs.existsSync(testDir)){
+    if (!fs.existsSync(testDir)) {
         fs.mkdirSync(testDir, { recursive: true });
     }
 
@@ -37,23 +37,23 @@ const createTestStructure = (module, testName) => {
     console.log(`Estrutura de teste para ${testName} criada com sucesso em ${testDir}`);
 };
 
-
 const getTestMainContent = (testName) => 
-`const mock = require("./${testName}.mock");
-const util = require("./${testName}.util");
+`const util = require("./${testName}.util");
+const data = require("./${testName}.data");
 
-module.exports = (_mockData) => {
-    test("Test ${testName}", async() => {
-        // Adicione seus passos de teste aqui
-        await util.exampleFunction();
+module.exports = (page) => {
+    test("Test ${testName}", async () => {
+        const newUser = data.users();
 
+        await util.exampleFunction(page, newUser);
+        
         // Remova a função de debug quando o teste estiver pronto
         await jestPuppeteer.debug();
     });
 };`;
 
 const getTestFileContent = (testName) => 
-`const { users, data } = require("./${testName}.data");
+`const puppeteer = require('puppeteer');
 
 describe("${testName.replace(/-/g, ' ')}", () => {
     let browser;
@@ -63,44 +63,67 @@ describe("${testName.replace(/-/g, ' ')}", () => {
         browser = await puppeteer.launch({
             slowMo: 20,
             headless: false,
-            userDataDir: "./tmp",
             defaultViewport: false,
         });
 
         page = await browser.newPage();
     });
 
-    afterAll(async() => {
+    beforeEach(async () => {
+        await page.goto('https://www.saucedemo.com');
+    });
+
+    afterAll(async () => {
         await browser.close();
     });
 
-    require("./test.main.js")(_mockData);
+    require("./test.main.js")(page);
 });`;
 
 const getDataFileContent = () => 
 `module.exports.users = () => ({
-    // Defina seus usuarios aqui    
+    standardUser: {
+        username: "standard_user",
+        password: "secret_sauce"
+    }  
 });
 
 module.exports.data = (_users) => ([
-    // Defina seus dados aqui
+    // Outros dados necessários para o teste
 ]);`;
 
 const getMockFileContent = () => 
-`module.exports.exampleFunction = (_mockData) => {
+`module.exports.exampleFunction = () => {
     return {
-        // Dados mockados aqui
+        // Dados mockados aqui, se necessário
     };
 };`;
 
 const getUtilFileContent = () => 
-`async function _exampleFunction(){
-    console.log("A função funcionou!");
+`async function _exampleFunction(page, newUser) {
+    console.log("Iniciando a função exampleFunction");
+
+    const userSelector = "#user-name";
+    await page.waitForSelector(userSelector);
+    await page.click(userSelector);
+    await page.type(userSelector, newUser.standardUser.username);
+
+    const passwordSelector = "#password";
+    await page.waitForSelector(passwordSelector);
+    await page.click(passwordSelector);
+    await page.type(passwordSelector, newUser.standardUser.password);
+
+    const buttonLoginSelector = "#login-button";
+    await page.waitForSelector(buttonLoginSelector);
+    await page.click(buttonLoginSelector);
+
+    // Adicionar mais ações se necessário
+    console.log("Login realizado com sucesso!");
 };
 
 module.exports = {
     exampleFunction: _exampleFunction,
-}`;
+};`;
 
 rl.question('Qual é o módulo do sistema (deixe em branco se não houver): ', (module) => {
     rl.question('Qual é o nome do teste: ', (testName) => {

@@ -1,6 +1,6 @@
-const { users, data } = require("./login.data");
+const puppeteer = require('puppeteer');
 
-describe("login", () => {
+describe("example", () => {
     let browser;
     let page;
 
@@ -8,16 +8,19 @@ describe("login", () => {
         browser = await puppeteer.launch({
             slowMo: 20,
             headless: false,
-            userDataDir: "./tmp",
             defaultViewport: false,
         });
 
         page = await browser.newPage();
     });
 
-    afterAll(async() => {
+    beforeEach(async () => {
+        await page.goto('https://www.saucedemo.com');
+    });
+
+    afterAll(async () => {
         await browser.close();
     });
 
-    require("./test.main.js")(_mockData);
+    require("./test.main.js")(page);
 });
