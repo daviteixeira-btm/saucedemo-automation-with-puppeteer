@@ -41,19 +41,17 @@ const getTestMainContent = (testName) =>
 `const util = require("./${testName}.util");
 const data = require("./${testName}.data");
 
-module.exports = (page) => {
-    test("Test ${testName}", async () => {
-        const newUser = data.users();
-
-        await util.exampleFunction(page, newUser);
-        
-        // Remova a função de debug quando o teste estiver pronto
-        await jestPuppeteer.debug();
-    });
+module.exports = async (page) => {
+    const newUser = data.users.standardUser;
+    await util.login(page, newUser);
+    // Adicione ou Remova a função de debug para realizar testes
+    // await jestPuppeteer.debug();
 };`;
 
 const getTestFileContent = (testName) => 
-`const puppeteer = require('puppeteer');
+`const fs = require('fs');
+const puppeteer = require('puppeteer');
+const runTest = require('./test.main');
 
 describe("${testName.replace(/-/g, ' ')}", () => {
     let browser;
@@ -63,7 +61,8 @@ describe("${testName.replace(/-/g, ' ')}", () => {
         browser = await puppeteer.launch({
             slowMo: 20,
             headless: false,
-            defaultViewport: false,
+            userDataDir: "./tmp",
+            defaultViewport: null,
         });
 
         page = await browser.newPage();
@@ -74,44 +73,68 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     });
 
     afterAll(async () => {
+        const pages = await browser.pages();
+        for (const p of pages) {
+            if (!p.isClosed()) {
+                await p.close();
+            }
+        }
+
         await browser.close();
+
+        fs.rmSync('./tmp', { recursive: true, force: true });
     });
 
-    require("./test.main.js")(page);
+    test('should run the login test', async () => {
+        await runTest(page);
+    }, 50000);
+
+    afterEach(async () => {
+        const cookies = await page.cookies();
+        await page.deleteCookie(...cookies);
+
+        const client = await page.target().createCDPSession();
+        await client.send('Network.clearBrowserCache');
+
+        const pages = await browser.pages();
+        for (const p of pages) {
+            if (!p.isClosed()) {
+                await p.close();
+            }
+        }
+    });
 });`;
 
 const getDataFileContent = () => 
-`module.exports.users = () => ({
-    standardUser: {
-        username: "standard_user",
-        password: "secret_sauce"
+`module.exports = {
+    users: {
+        standardUser: {
+            username: "standard_user",
+            password: "secret_sauce"
+        }
     }  
-});
-
-module.exports.data = (_users) => ([
-    // Outros dados necessários para o teste
-]);`;
+};`;
 
 const getMockFileContent = () => 
-`module.exports.exampleFunction = () => {
-    return {
+`module.exports = {
+    exampleFunction: () => {
         // Dados mockados aqui, se necessário
-    };
+    }
 };`;
 
 const getUtilFileContent = () => 
-`async function _exampleFunction(page, newUser) {
-    console.log("Iniciando a função exampleFunction");
+`async function _login(page, user) {
+    console.log("Iniciando a função!");
 
     const userSelector = "#user-name";
     await page.waitForSelector(userSelector);
     await page.click(userSelector);
-    await page.type(userSelector, newUser.standardUser.username);
+    await page.type(userSelector, user.username);
 
     const passwordSelector = "#password";
     await page.waitForSelector(passwordSelector);
     await page.click(passwordSelector);
-    await page.type(passwordSelector, newUser.standardUser.password);
+    await page.type(passwordSelector, user.password);
 
     const buttonLoginSelector = "#login-button";
     await page.waitForSelector(buttonLoginSelector);
@@ -122,7 +145,7 @@ const getUtilFileContent = () =>
 };
 
 module.exports = {
-    exampleFunction: _exampleFunction,
+    login: _login,
 };`;
 
 rl.question('Qual é o módulo do sistema (deixe em branco se não houver): ', (module) => {
