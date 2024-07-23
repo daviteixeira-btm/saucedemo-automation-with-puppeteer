@@ -73,16 +73,28 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     });
 
     afterAll(async () => {
-        const pages = await browser.pages();
-        for (const p of pages) {
-            if (!p.isClosed()) {
-                await p.close();
+        try {
+            const pages = await browser.pages();
+            for (const p of pages) {
+                if (!p.isClosed()) {
+                    try {
+                        await p.close();
+                    } catch (err) {
+                        console.error('Erro ao fechar a página:', err);
+                    }
+                }
             }
+
+            await browser.close();
+        } catch (err) {
+            console.error('Erro ao fechar o navegador:', err);
         }
 
-        await browser.close();
-
-        fs.rmSync('./tmp', { recursive: true, force: true });
+        try {
+            fs.rmSync('./tmp', { recursive: true, force: true });
+        } catch (err) {
+            console.error('Erro ao remover o diretório tmp:', err);
+        }
     });
 
     test('should run the login test', async () => {
@@ -90,17 +102,28 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     }, 50000);
 
     afterEach(async () => {
-        const cookies = await page.cookies();
-        await page.deleteCookie(...cookies);
+        await page.deleteCookie(...(await page.cookies()));
 
-        const client = await page.target().createCDPSession();
-        await client.send('Network.clearBrowserCache');
+        try {
+            const client = await page.target().createCDPSession();
+            await client.send('Network.clearBrowserCache');
+        } catch (err) {
+            console.error('Erro ao limpar o cache do navegador:', err);
+        }
 
-        const pages = await browser.pages();
-        for (const p of pages) {
-            if (!p.isClosed()) {
-                await p.close();
+        try {
+            const pages = await browser.pages();
+            for (const p of pages) {
+                if (!p.isClosed()) {
+                    try {
+                        await p.close();
+                    } catch (err) {
+                        console.error('Erro ao fechar a página:', err);
+                    }
+                }
             }
+        } catch (err) {
+            console.error('Erro ao listar as páginas do navegador:', err);
         }
     });
 });`;
