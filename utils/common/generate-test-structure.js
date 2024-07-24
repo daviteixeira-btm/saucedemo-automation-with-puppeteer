@@ -58,9 +58,12 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     let page;
 
     beforeAll(async () => {
+
+        const headless = process.env.JEST_PUPPETEER_HEADLESS === 'true';
+
         browser = await puppeteer.launch({
-            slowMo: 20,
-            headless: false,
+            slowMo: headless ? 0 : 20,
+            headless: headless,
             userDataDir: "./tmp",
             defaultViewport: null,
         });
@@ -73,23 +76,26 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     });
 
     afterAll(async () => {
-        try {
-            const pages = await browser.pages();
-            for (const p of pages) {
-                if (!p.isClosed()) {
-                    try {
-                        await p.close();
-                    } catch (err) {
-                        console.error('Erro ao fechar a página:', err);
-                    }
+        // Fecha todas as páginas abertas
+        const pages = await browser.pages();
+        for (const p of pages) {
+            if (!p.isClosed()) {
+                try {
+                    await p.close();
+                } catch (err) {
+                    console.error('Erro ao fechar a página:', err);
                 }
             }
+        }
 
+        // Fecha o navegador
+        try {
             await browser.close();
         } catch (err) {
             console.error('Erro ao fechar o navegador:', err);
         }
 
+        // Limpa os dados do usuário
         try {
             fs.rmSync('./tmp', { recursive: true, force: true });
         } catch (err) {
