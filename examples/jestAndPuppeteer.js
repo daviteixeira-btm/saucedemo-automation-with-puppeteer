@@ -39,6 +39,6 @@ describe('Login Test', () => {
 
     await page.screenshot({ path: "example.png" });
     
-    await jestPuppeteer.debug(); // Este comando agora deve funcionar
+    await jestPuppeteer.debug();
   });
 });

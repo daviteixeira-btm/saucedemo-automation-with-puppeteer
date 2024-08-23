@@ -8,17 +8,25 @@ const rl = readline.createInterface({
 });
 
 const projectRoot = path.resolve(__dirname, '../../');
+
 const testsDir = path.join(projectRoot, 'tests');
 
 const createTestStructure = (module, testName) => {
+    
+    if(!testName){
+        console.error('Nome do teste não pode ser vazio.');
+        process.exit(1);
+    }
+
     const moduleDir = module ? path.join(testsDir, module) : testsDir;
+    
     const testDir = path.join(moduleDir, testName);
 
-    if (!fs.existsSync(moduleDir)) {
+    if(!fs.existsSync(moduleDir)){
         fs.mkdirSync(moduleDir, { recursive: true });
     }
 
-    if (!fs.existsSync(testDir)) {
+    if(!fs.existsSync(testDir)){
         fs.mkdirSync(testDir, { recursive: true });
     }
 
@@ -44,7 +52,7 @@ const data = require("./${testName}.data");
 module.exports = async (page) => {
     const newUser = data.users.standardUser;
     await util.login(page, newUser);
-    // Adicione ou Remova a função de debug para realizar testes
+    // Adicione ou remova a função de debug para realizar testes
     // await jestPuppeteer.debug();
 };`;
 
@@ -58,16 +66,15 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     let page;
 
     beforeAll(async () => {
-
         const headless = process.env.JEST_PUPPETEER_HEADLESS === 'true';
-
+        
         browser = await puppeteer.launch({
             slowMo: headless ? 0 : 20,
             headless: headless,
             userDataDir: "./tmp",
             defaultViewport: null,
         });
-
+        
         page = await browser.newPage();
     });
 
@@ -76,10 +83,10 @@ describe("${testName.replace(/-/g, ' ')}", () => {
     });
 
     afterAll(async () => {
-        // Fecha todas as páginas abertas
         const pages = await browser.pages();
-        for (const p of pages) {
-            if (!p.isClosed()) {
+        
+        for(const p of pages){
+            if(!p.isClosed()){
                 try {
                     await p.close();
                 } catch (err) {
@@ -88,14 +95,12 @@ describe("${testName.replace(/-/g, ' ')}", () => {
             }
         }
 
-        // Fecha o navegador
         try {
             await browser.close();
         } catch (err) {
             console.error('Erro ao fechar o navegador:', err);
         }
 
-        // Limpa os dados do usuário
         try {
             fs.rmSync('./tmp', { recursive: true, force: true });
         } catch (err) {
@@ -119,8 +124,9 @@ describe("${testName.replace(/-/g, ' ')}", () => {
 
         try {
             const pages = await browser.pages();
-            for (const p of pages) {
-                if (!p.isClosed()) {
+            
+            for(const p of pages){
+                if(!p.isClosed()){
                     try {
                         await p.close();
                     } catch (err) {
@@ -175,11 +181,34 @@ const getUtilFileContent = () =>
 
 module.exports = {
     login: _login,
-};`;
+}`;
+
+const listExistingModules = () => {
+    if (fs.existsSync(testsDir)) {
+        const modules = fs.readdirSync(testsDir).filter(file => fs.statSync(path.join(testsDir, file)).isDirectory());
+        if (modules.length) {
+            console.log('Módulos existentes:');
+            modules.forEach(module => console.log(`- ${module}`));
+        } else {
+            console.log('Nenhum módulo existente.');
+        }
+    } else {
+        console.log('Diretório de testes não encontrado.');
+    }
+};
+
+listExistingModules();
 
 rl.question('Qual é o módulo do sistema (deixe em branco se não houver): ', (module) => {
     rl.question('Qual é o nome do teste: ', (testName) => {
+        if(!testName || /[^a-zA-Z0-9_-]/.test(testName)){
+            console.error('Nome do teste inválido. Use apenas letras, números, hífens e underscores.');
+            rl.close();
+            return;
+        }
+
         createTestStructure(module, testName);
+        
         rl.close();
     });
 });
