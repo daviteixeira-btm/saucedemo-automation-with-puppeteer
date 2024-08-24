@@ -1,48 +1,46 @@
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
+const inquirer = require('inquirer');
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const prompt = inquirer.createPromptModule();
 
 const projectRoot = path.resolve(__dirname, '../../');
 
 const testsDir = path.join(projectRoot, 'tests');
 
+const DEF_AVAILABLE_MODULES = [
+    ["login", "Login"],
+    ["settings", "Settings"],
+    ["locations", "Locations"],
+    ["resources", "Resources"],
+];
+
 const createTestStructure = (module, testName) => {
-    
-    if(!testName){
+    if (!testName) {
         console.error('Nome do teste não pode ser vazio.');
         process.exit(1);
     }
 
-    const moduleDir = module ? path.join(testsDir, module) : testsDir;
-    
-    const testDir = path.join(moduleDir, testName);
+    const testFileName = `${module}-${testName}`;
+    const testDir = path.join(testsDir, testFileName);
 
-    if(!fs.existsSync(moduleDir)){
-        fs.mkdirSync(moduleDir, { recursive: true });
-    }
-
-    if(!fs.existsSync(testDir)){
+    if (!fs.existsSync(testDir)) {
         fs.mkdirSync(testDir, { recursive: true });
     }
 
     const files = [
-        { name: 'main.test.js', content: getTestMainContent(testName) },
-        { name: `${testName}.spec.js`, content: getTestFileContent(testName) },
-        { name: `${testName}.data.js`, content: getDataFileContent() },
-        { name: `${testName}.mock.js`, content: getMockFileContent() },
-        { name: `${testName}.util.js`, content: getUtilFileContent() }
+        { name: 'test-main.js', content: getTestMainContent(testFileName) },
+        { name: `${testFileName}.spec.js`, content: getTestFileContent(testFileName) },
+        { name: `${testFileName}.data.js`, content: getDataFileContent() },
+        { name: `${testFileName}.mock.js`, content: getMockFileContent() },
+        { name: `${testFileName}.util.js`, content: getUtilFileContent() }
     ];
 
     files.forEach(file => {
         fs.writeFileSync(path.join(testDir, file.name), file.content);
     });
 
-    console.log(`Estrutura de teste para ${testName} criada com sucesso em ${testDir}`);
+    console.log(`Estrutura de teste para ${testFileName} criada com sucesso em ${testDir}`);
 };
 
 const getTestMainContent = (testName) => 
@@ -60,7 +58,7 @@ module.exports = async (page) => {
 const getTestFileContent = (testName) => 
 `const fs = require('fs');
 const puppeteer = require('puppeteer');
-const runTest = require('./main.test');
+const runTest = require('./test-main');
 
 // Contém a definição do teste usando jest.
 describe("${testName.replace(/-/g, ' ')}", () => {
@@ -188,32 +186,28 @@ module.exports = {
     login: _login,
 }`;
 
-const listExistingModules = () => {
-    if (fs.existsSync(testsDir)) {
-        const modules = fs.readdirSync(testsDir).filter(file => fs.statSync(path.join(testsDir, file)).isDirectory());
-        if (modules.length) {
-            console.log('Módulos existentes:');
-            modules.forEach(module => console.log(`- ${module}`));
-        } else {
-            console.log('Nenhum módulo existente.');
+const listAvailableModules = async () => {
+    const { selectedModule } = await prompt([
+        {
+            type: 'list',
+            name: 'selectedModule',
+            message: 'Which module do you want to test?',
+            choices: DEF_AVAILABLE_MODULES.map(([key, name]) => ({ name, value: key })),
         }
-    } else {
-        console.log('Diretório de testes não encontrado.');
-    }
+    ]);
+
+    return selectedModule;
 };
 
-listExistingModules();
+(async () => {
+    const selectedModule = await listAvailableModules();
 
-rl.question('Qual é o módulo do sistema (deixe em branco se não houver): ', (module) => {
-    rl.question('Qual é o nome do teste: ', (testName) => {
-        if(!testName || /[^a-zA-Z0-9_-]/.test(testName)){
-            console.error('Nome do teste inválido. Use apenas letras, números, hífens e underscores.');
-            rl.close();
-            return;
-        }
-
-        createTestStructure(module, testName);
-        
-        rl.close();
+    const { testName } = await prompt({
+        type: 'input',
+        name: 'testName',
+        message: 'Qual é o nome do teste:',
+        validate: (input) => input && !/[^a-zA-Z0-9_-]/.test(input) ? true : 'Nome do teste inválido. Use apenas letras, números, hífens e underscores.'
     });
-});
+
+    createTestStructure(selectedModule, testName);
+})();

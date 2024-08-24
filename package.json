@@ -15,5 +15,8 @@
     "jest": "^29.7.0",
     "jest-puppeteer": "^10.0.1",
     "puppeteer": "^22.13.1"
+  },
+  "dependencies": {
+    "inquirer": "^10.1.8"
   }
 }
