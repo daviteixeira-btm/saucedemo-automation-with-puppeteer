@@ -21,7 +21,7 @@ if(!fs.existsSync(testFolderPath)){
 
 console.log(`Executando testes na pasta: ${testFolderPath}`);
 
-exec(`cross-env JEST_PUPPETEER_HEADLESS=false jest --runInBand --detectOpenHandles ./tests/${testFolder} ${additionalArgs}`, (err, stdout, stderr) => {
+exec(`cross-env JEST_PUPPETEER_HEADLESS=false jest --runInBand --detectOpenHandles ./tests/${testFolder} ${additionalArgs} --color`, (err, stdout, stderr) => {
     if(err){
         console.error(`Erro ao executar o teste: ${err.message}`);
         return;
