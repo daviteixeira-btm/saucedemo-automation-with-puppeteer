@@ -3,7 +3,9 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const testFolder = process.argv[2];
+const args = process.argv.slice(2);
+const testFolder = args[0];
+const additionalArgs = args.slice(1).join(' ');
 
 if(!testFolder){
     console.error('Erro: Por favor, forneça a pasta do teste como argumento.');
@@ -19,7 +21,7 @@ if(!fs.existsSync(testFolderPath)){
 
 console.log(`Executando testes na pasta: ${testFolderPath}`);
 
-exec(`cross-env JEST_PUPPETEER_HEADLESS=false jest --runInBand --detectOpenHandles ./tests/${testFolder}`, (err, stdout, stderr) => {
+exec(`cross-env JEST_PUPPETEER_HEADLESS=false jest --runInBand --detectOpenHandles ./tests/${testFolder} ${additionalArgs}`, (err, stdout, stderr) => {
     if(err){
         console.error(`Erro ao executar o teste: ${err.message}`);
         return;

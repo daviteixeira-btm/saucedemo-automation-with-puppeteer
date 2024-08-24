@@ -31,8 +31,8 @@ const createTestStructure = (module, testName) => {
     }
 
     const files = [
-        { name: 'test.main.js', content: getTestMainContent(testName) },
-        { name: `${testName}.test.js`, content: getTestFileContent(testName) },
+        { name: 'main.test.js', content: getTestMainContent(testName) },
+        { name: `${testName}.spec.js`, content: getTestFileContent(testName) },
         { name: `${testName}.data.js`, content: getDataFileContent() },
         { name: `${testName}.mock.js`, content: getMockFileContent() },
         { name: `${testName}.util.js`, content: getUtilFileContent() }
@@ -49,6 +49,7 @@ const getTestMainContent = (testName) =>
 `const util = require("./${testName}.util");
 const data = require("./${testName}.data");
 
+// Deve conter apenas a lógica principal do teste.
 module.exports = async (page) => {
     const newUser = data.users.standardUser;
     await util.login(page, newUser);
@@ -59,8 +60,9 @@ module.exports = async (page) => {
 const getTestFileContent = (testName) => 
 `const fs = require('fs');
 const puppeteer = require('puppeteer');
-const runTest = require('./test.main');
+const runTest = require('./main.test');
 
+// Contém a definição do teste usando jest.
 describe("${testName.replace(/-/g, ' ')}", () => {
     let browser;
     let page;
@@ -141,7 +143,8 @@ describe("${testName.replace(/-/g, ' ')}", () => {
 });`;
 
 const getDataFileContent = () => 
-`module.exports = {
+`// Centraliza os dados de teste.
+module.exports = {
     users: {
         standardUser: {
             username: "standard_user",
@@ -151,14 +154,16 @@ const getDataFileContent = () =>
 };`;
 
 const getMockFileContent = () => 
-`module.exports = {
+`// Centraliza as funções e dados de mock.
+module.exports = {
     exampleFunction: () => {
         // Dados mockados aqui, se necessário
     }
 };`;
 
 const getUtilFileContent = () => 
-`async function _login(page, user) {
+`// Deverá incluir funções utilitárias relacionadas à lógica de interação com a página.
+async function _login(page, user) {
     console.log("Iniciando a função!");
 
     const userSelector = "#user-name";
