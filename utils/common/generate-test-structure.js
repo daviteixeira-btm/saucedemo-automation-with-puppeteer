@@ -48,42 +48,46 @@ const getTestMainContent = (testName) =>
 const data = require("./${testName}.data");
 
 // Deve conter apenas a lógica principal do teste.
-module.exports = async (page) => {
-    const newUser = data.users.standardUser;
-    await util.login(page, newUser);
-    // Adicione ou remova a função de debug para realizar testes
-    // await jestPuppeteer.debug();
+module.exports = async (_mockData) => {
+    test('should run the login test', async () => {
+        const newUser = data.users.standardUser;
+        await util.login(_mockData.page, newUser);
+        // Adicione ou remova a função de debug para realizar testes
+        // await jestPuppeteer.debug();
+    });
 };`;
 
 const getTestFileContent = (testName) => 
 `const fs = require('fs');
 const puppeteer = require('puppeteer');
-const runTest = require('./test-main');
 
 // Contém a definição do teste usando jest.
 describe("${testName.replace(/-/g, ' ')}", () => {
-    let browser;
-    let page;
+    
+    const _mockData = {
+        browser: {},
+        page: {},
+    };
 
     beforeAll(async () => {
         const headless = process.env.JEST_PUPPETEER_HEADLESS === 'true';
         
-        browser = await puppeteer.launch({
+        _mockData.browser = await puppeteer.launch({
             slowMo: headless ? 0 : 20,
             headless: headless,
             userDataDir: "./tmp",
             defaultViewport: null,
         });
         
-        page = await browser.newPage();
+        _mockData.page = await _mockData.browser.newPage();
     });
 
     beforeEach(async () => {
-        await page.goto('https://www.saucedemo.com');
+        await _mockData.page.goto('https://www.saucedemo.com');
     });
 
     afterAll(async () => {
-        const pages = await browser.pages();
+        const pages = await _mockData.browser.pages();
         
         for(const p of pages){
             if(!p.isClosed()){
@@ -96,7 +100,7 @@ describe("${testName.replace(/-/g, ' ')}", () => {
         }
 
         try {
-            await browser.close();
+            await _mockData.browser.close();
         } catch (err) {
             console.error('Erro ao fechar o navegador:', err);
         }
@@ -108,22 +112,18 @@ describe("${testName.replace(/-/g, ' ')}", () => {
         }
     });
 
-    test('should run the login test', async () => {
-        await runTest(page);
-    }, 50000);
-
     afterEach(async () => {
-        await page.deleteCookie(...(await page.cookies()));
+        await _mockData.page.deleteCookie(...(await _mockData.page.cookies()));
 
         try {
-            const client = await page.target().createCDPSession();
+            const client = await _mockData.page.target().createCDPSession();
             await client.send('Network.clearBrowserCache');
         } catch (err) {
             console.error('Erro ao limpar o cache do navegador:', err);
         }
 
         try {
-            const pages = await browser.pages();
+            const pages = await _mockData.browser.pages();
             
             for(const p of pages){
                 if(!p.isClosed()){
@@ -138,6 +138,9 @@ describe("${testName.replace(/-/g, ' ')}", () => {
             console.error('Erro ao listar as páginas do navegador:', err);
         }
     });
+
+    // Chama o test-main.js dentro do bloco de teste onde o page já está definido
+    require('./test-main.js')(_mockData);
 });`;
 
 const getDataFileContent = () => 
